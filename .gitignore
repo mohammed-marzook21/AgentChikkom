@@ -1,0 +1,10 @@
+.env
+.venv/
+venv/
+venv311/
+__pycache__/
+*.pyc
+*.db
+*.db-shm
+*.db-wal
+data/vector_index/
