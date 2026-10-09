@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 import streamlit as st
-
+from supervisor.runner import run_supervisor
 
 
 
@@ -968,7 +968,6 @@ if run_clicked:
         started = time.perf_counter()
         with st.spinner("LangGraph is coordinating specialist agents..."):
             try:
-                from supervisor.runner import run_supervisor
                 result = run_supervisor(user_query.strip())
                 elapsed = time.perf_counter() - started
                 st.session_state["last_result"] = result

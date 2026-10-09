@@ -79,9 +79,11 @@ def _resolve_local_embedding_model() -> Path:
 
 LOCAL_EMBED_MODEL = _resolve_local_embedding_model()
 
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name=str(LOCAL_EMBED_MODEL),
-)
+from workers.shared_resources import get_embedding_model
+
+embed_model = get_embedding_model(str(LOCAL_EMBED_MODEL))
+
+Settings.embed_model = embed_model
 
 Settings.llm = AnthropicNoTemperature(
     model="claude-sonnet-4-5",

@@ -76,9 +76,9 @@ def _resolve_local_embedding_model() -> Path:
 
 LOCAL_EMBED_MODEL = _resolve_local_embedding_model()
 
-embed_model = HuggingFaceEmbedding(
-    model_name=str(LOCAL_EMBED_MODEL),
-)
+from workers.shared_resources import get_embedding_model
+
+embed_model = get_embedding_model(str(LOCAL_EMBED_MODEL))
 
 Settings.embed_model = embed_model
 # ---------------------------------------------------------
@@ -158,9 +158,13 @@ def build_index() -> VectorStoreIndex:
 # Load existing vector index
 # ---------------------------------------------------------
 
+from functools import lru_cache
+
+
+@lru_cache(maxsize=1)
 def load_index() -> VectorStoreIndex:
     """
-    Load an already-created vector index from disk.
+    Load an already-created vector index from disk once per process.
     """
 
     if not INDEX_DIR.exists():
@@ -180,8 +184,27 @@ def load_index() -> VectorStoreIndex:
 
 
 # ---------------------------------------------------------
+# Cached policy query engine
+# ---------------------------------------------------------
+
+@lru_cache(maxsize=1)
+def get_policy_query_engine():
+    """
+    Create the policy query engine once per Python process.
+    """
+
+    index = load_index()
+
+    return index.as_query_engine(
+        similarity_top_k=3,
+        llm=llm,
+    )
+
+
+# ---------------------------------------------------------
 # Retrieve relevant policy chunks
 # ---------------------------------------------------------
+
 
 def retrieve_policy(question: str, top_k: int = 3) -> str:
     """
@@ -244,14 +267,13 @@ def query_policy(question: str) -> str:
         raise ValueError("Question cannot be empty.")
 
     if INDEX_DIR.exists():
-        index = load_index()
+        query_engine = get_policy_query_engine()
     else:
         index = build_index()
-
-    query_engine = index.as_query_engine(
-        similarity_top_k=3,
-        llm=llm,
-    )
+        query_engine = index.as_query_engine(
+            similarity_top_k=3,
+            llm=llm,
+        )
 
     try:
         response = query_engine.query(question)
